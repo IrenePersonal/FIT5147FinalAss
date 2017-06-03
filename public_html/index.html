@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html>
+<title>FIT5147 Final Assignment</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inconsolata">
+<script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" charset="utf-8">
+</script>-->
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/d3.v4.min.js"></script>
+<script src="https://unpkg.com/d3-force-attract@latest"></script>
+<script src="https://unpkg.com/d3-force-cluster@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+
+<style>
+body, html {
+    height: 100%;
+    font-family: "Inconsolata", sans-serif;
+}
+.bgimg {
+    background-position: center;
+    background-size: cover;
+    background-image: url("image/header.jpg");
+    min-height: 75%;
+}
+.menu {
+    display: none;
+}
+
+ul#type li {
+    font-size: 80%;
+}
+
+/*
+#typeColor {
+  padding-top: 2500px; 
+  padding-left: 12%;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+*/
+
+div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: 300px;					
+    height: 42px;					
+    padding: 2px;				
+    font: 12px sans-serif;		
+    background: lightblue;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;
+    z-index:1000;
+}
+
+/* styles for float desc -------*/
+
+.center{
+    width:100px;
+    height:60px;      	
+    text-align:center;
+    display:inline;
+}
+
+#typeColor{
+    position:relative;
+    width:400px;
+    height:1px;
+    margin-left:-20px;
+    text-align:left;
+}
+
+/* styles for dorpdown ---------*/
+
+input[type=text], select {
+    padding: 10px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* styles for treemap ----------*/
+#treemap {
+  background: #fff;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.title {
+    font-weight: bold;
+    font-size: 24px;
+    text-align: center;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+text {
+  pointer-events: none;
+}
+
+.grandparent text {
+  font-weight: bold;
+}
+
+rect {
+  fill: none;
+  stroke: #fff;
+}
+
+rect.parent,
+.grandparent rect {
+  stroke-width: 2px;
+}
+
+rect.parent {
+    pointer-events: none;
+}
+
+.grandparent rect {
+  fill: orange;
+}
+
+.grandparent:hover rect {
+  fill: #ee9700;
+}
+
+.children rect.parent,
+.grandparent rect {
+  cursor: pointer;
+}
+
+.children rect.parent {
+  fill: #bbb;
+  fill-opacity: .5;
+}
+
+.children:hover rect.child {
+  fill: #bbb;
+}
+
+/* styles for line graph -------*/
+
+.axis--x path {
+  display: none;
+}
+
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+/* styles for reset button ------*/
+#reset {
+    background-color: white; /* Green */
+    border: 1px solid gainsboro;
+    color: black;
+    padding: 8px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#deleteBubble {
+    background-color: #f44336; /* Red */
+    border: 1px solid white;
+    color: white;
+    padding: 8px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* styles for sequences sunburst ----------*/
+
+#main {
+  float: left;
+  width: 750px;
+}
+
+#sidebar {
+  float: right;
+  width: 100px;
+}
+
+#sequence {
+  width: 600px;
+  height: 70px;
+}
+
+#legend {
+  padding: 10px 0 0 3px;
+}
+
+#sequence text, #legend text {
+  font-weight: 600;
+  fill: #fff;
+}
+
+#chart {
+  position: relative;
+}
+
+#chart path {
+  stroke: #fff;
+}
+
+#explanation {
+  position: absolute;
+  top: 260px;
+  left: 305px;
+  width: 140px;
+  text-align: center;
+  color: #666;
+  z-index: -1;
+}
+
+#percentage {
+  font-size: 2.5em;
+}
+
+/* styles for australian map ----------*/
+
+.states {
+    fill: #ccc;
+    cursor:pointer
+  }
+  
+  .states :hover {
+    fill: orange;
+  }
+  
+  .active {
+      fill: orange;
+  }
+
+</style>
+<body>
+
+<!-- Links (sit on top) -->
+<div class="w3-top">
+  <div class="w3-row w3-padding w3-black">
+    <div class="w3-col s3">
+      <a href="#" class="w3-button w3-block w3-black">HOME</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#intro" class="w3-button w3-block w3-black">INTRODUCTION</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#menu" class="w3-button w3-block w3-black">JOB VACANCIES</a>
+    </div>
+    <div class="w3-col s3">
+      <a href="#where" class="w3-button w3-block w3-black">REFERENCES</a>
+    </div>
+  </div>
+</div>
+
+<!-- Header with image -->
+<header class="bgimg w3-display-container w3-grayscale-min" id="home">
+  <div class="w3-display-middle w3-center">
+    <br/><br/>
+    <span class="w3-text-white" style="font-size:60px">FIT5147</span>
+    <br/>
+    <span class="w3-text-white" style="font-size:30px">Data Exploration and Visualisation Project</span>
+    <br/><br/><br/>
+    <span class="w3-text-white" style="font-size:40px">Job Vacancies in Australia</span>
+  </div>
+</header>
+
+<!-- Add a background color and large text to the whole page -->
+<div class="w3-sand w3-grayscale w3-large">
+
+<!-- About Container -->
+<div class="w3-container" id="intro">
+  <div class="w3-content" style="max-width:1000px">
+    <h5 class="w3-center w3-padding-64"><span class="w3-tag w3-wide">INTRODUCTION</span></h5>
+    <p>
+        Most people need jobs to make a living or enrich their lives. It's not just be an approach of earning, but a means to make a difference - for ourselves and the organization. 
+        We can constantly discover ourselves, our potential & our limit of taking up more responsibilities in work. Thus, a choice of jobs and job hunt are practical concerns of many people.
+        Besides, the job vacancy of a country can reveal its social-economic development status and social class structure.
+    </p>
+    <p>Hence, the website was created to explore and present the condition of job vacancies in Australia on various aspects to people who are interested in this area.</p>
+    <div class="w3-panel w3-leftbar w3-light-grey">
+      <p><i>"Your life can be enhanced, and your happiness enriched, when you have a good job."</i></p>
+    </div>
+    <img src="image/job.jpg" style="width:100%;max-width:1000px" class="w3-margin-top">
+  </div>
+</div>
+
+<!-- Menu Container -->
+<div class="w3-container" id="menu">
+  <div class="w3-content" style="max-width:1000px">
+ 
+    <h5 class="w3-center w3-padding-48"><span class="w3-tag w3-wide">JOB VACANCIES IN AUSTRALIA</span></h5>
+  
+    <p><strong>The datasets used:</strong>
+    </p>
+    <p>
+    · IVI DATA_January 2006 onwards<br/>
+    · IVI DATA_detailed occupation – March 2006 onwards<br/>
+    · IVI DATA_regional – May 2010 onwards<br/>
+    · IVI DATA_SkillLevel – January 2006 onward
+    </p>
+    <p>
+        The datasets are published on data.gov.au, based on a count of online job advertisements newly lodged on three main job boards (SEEK, CareerOne and Australian JobSearch) during the month. 
+        Output includes a time series of vacancies at various level, including at a national, State and IVI regional level, and at an occupational level.
+    </p>
+    <p>
+        The IVI is the only publicly available source of detailed data on online vacancies, including for around 350 occupations (at all skill levels), as well as for all states/territories and 37 regions.
+    </p>
+    
+    <div class="w3-row w3-center w3-card-2 w3-padding">
+      <a href="javascript:void(0)" onclick="openMenu(event, 'jobtype');" id="myLink">
+        <div class="w3-col s6 tablink">Job Type</div>
+      </a>
+      <a href="javascript:void(0)" onclick="openMenu(event, 'region');">
+        <div class="w3-col s6 tablink">Map</div>
+      </a>
+    </div>
+
+    <div id="jobtype" class="w3-container menu w3-padding-48 w3-card-2">
+        <div id="treemap"></div>
+
+        <div id="content" class="w3-col s12" style ="display: none;">    
+          <div id="d" class="center">    
+              <div class="center">
+                  <select id="state" onchange="setBubbleZoom()" style="cursor:pointer">
+                      <option value="AUST">Australia</option>
+                      <option value="ACT">Australian Capital Territory</option>
+                      <option value="NSW">New South Wales</option>
+                      <option value="NT">Northern Territory</option>
+                      <option value="QLD">Queensland</option>
+                      <option value="SA">South Australia</option>
+                      <option value="TAS">Tasmania</option>
+                      <option value="VIC">Victoria</option>
+                      <option value="WA">Western Australia</option>
+                  </select>
+                  <input type="range" id="bubbleRange" style="cursor:pointer;position:relative;z-index:1000;vertical-align:middle;" value="10000" min="10" max="20000" step="10" onchange="typeBubbleGraph()">
+                  <button id="reset" onclick="resetBubble()">Resize</button>
+                  <button id="reset" onclick="deleteAllSelect()">Reset</button>
+                  <button id="deleteBubble" style="max-width: 365px;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;" value="test" onclick="deteleBubble()">Remove</button>
+              </div>  
+              <div id="typeColor"></div>
+          </div>  
+        </div>  
+        <div id="subGraphContainer" style ="display: none;">
+            <div id="typeGraph" class="w3-col s6" style="position:relative;z-index:100;"></div>
+            <div id="typeLine" class="w3-col s6">
+                <form action="#" id="groupForm">
+                    <input type="radio" name="group" value=1 style="cursor:pointer"> Major Group
+                    <input type="radio" name="group" value=2 style="cursor:pointer"> Sub-major Group
+                    <input type="radio" name="group" value=4 style="cursor:pointer" checked> Unit Group
+                </form>
+            </div>
+            <script>
+              var types = ['1.MANAGERS', '2.PROFESSIONALS', '3.TECHNICIANS AND TRADES WORKERS'
+                  , '4.COMMUNITY AND PERSONAL SERVICE WORKERS', '5.CLERICAL AND ADMINISTRATIVE WORKERS'
+                  , '6.SALES WORKERS', '7.MACHINERY OPERATORS AND DRIVERS', '8.LABOURERS'];
+
+              //var typeColor = d3.scale.category10().domain(d3.range(types.length));
+              var typeColor = d3.scaleOrdinal(d3.schemeCategory10).domain(d3.range(types.length));
+
+              var ul = d3.select('#typeColor').append('ul');
+              ul.attr("id","type");
+              ul.selectAll('li')
+              .data(types)
+              .enter()
+              .append('li')
+              .style("color", function(d) { return typeColor((types.indexOf(d)+1)/10); })
+              .html(String);
+
+            </script>
+            <!--
+            <button id="selectedOneType" style="overflow: hidden;white-space: nowrap;text-overflow: ellipsis;" value="test" onclick="deteleBubble()">More Details</button>
+            //document.getElementById("selectedOneType").style. = "block";
+            <div id = "selectedOneType">aaa</div>-->
+        </div>
+    </div>
+
+    <div id="region" class="w3-container menu w3-padding-48 w3-card-2">
+        <div id="aumap"></div>
+    </div>  
+    
+  </div>
+</div>
+
+<!-- Contact/Area Container -->
+<div class="w3-container" id="where" style="padding-bottom:32px;">
+  <div class="w3-content" style="max-width:1000px">
+    <h5 class="w3-center w3-padding-48"><span class="w3-tag w3-wide">REFERENCES</span></h5>
+    <p>d3-force-cluster + d3-force-attract I -- https://bl.ocks.org/ericsoco/d2d49d95d2f75552ac64f0125440b35e</p>
+    <p>Zoomable Treemap Template -- http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022</p>
+    <p>Multi-Series Line Chart -- https://bl.ocks.org/mbostock/3884955</p>
+    <p>australian-states (geojson file) -- https://github.com/rowanhogan/australian-states</p>
+    <p><span class="w3-tag">FYI!</span> We offer full-service catering for any event, large or small. We understand your needs and we will cater the food to satisfy the biggerst criteria of them all, both look and taste.</p>
+    <p><strong>Reserve</strong> a table, ask for today's special or just send us a message:</p>
+  
+  </div>
+</div>
+
+<!-- End page content -->
+</div>
+
+<!-- Footer -->
+<footer class="w3-center w3-light-grey w3-padding-48 w3-large">
+  <p>
+  FIT5147 Data Exploration and Visualisation Project
+  <br/>Job Vacancies in Australia
+  <br/>
+  <br/>Author: Jiao Zhang
+  <br/>Student ID: 25937561</p>
+</footer>
+
+<script>
+    // Tabbed Menu
+function openMenu(evt, menuName) {
+  var i, x, tablinks;
+  x = document.getElementsByClassName("menu");
+  for (i = 0; i < x.length; i++) {
+     x[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("tablink");
+  for (i = 0; i < x.length; i++) {
+     tablinks[i].className = tablinks[i].className.replace(" w3-dark-grey", "");
+  }
+  document.getElementById(menuName).style.display = "block";
+  evt.currentTarget.firstElementChild.className += " w3-dark-grey";
+}
+document.getElementById("myLink").click();
+
+var div = d3.select("body").append("div")	
+            .attr("class", "tooltip")				
+            .style("opacity", 0);
+/*
+d3.csv("data/ANZSCO2.csv", function(data) {
+  var ANZSCO = [];
+  
+  var i = 0;
+  data.forEach(function(record) {
+      ANZSCO[i]=record;
+      i++;
+  });
+  //alert(JSON.stringify(data));
+  typeBubbleGraph(data);
+  
+});
+*/
+
+function getCode(string){
+    var codeIndex = string.indexOf('.');
+    var code = string.substring(0, codeIndex !== -1 ? codeIndex : 0);
+    return code;
+}
+
+function checkObjectValueInArray(value, array){
+    for(var i = 0; i < array.length; i++){
+        if(array[i].code === value){
+            return true;
+        }
+    }
+    return false;
+}
+
+function checkObjectValue2InArray(value, array, type){
+    for(var i = 0; i < array.length; i++){
+        if(type===2){
+            if(array[i].code2 === value){
+                return true;
+            }
+        }else if(type===1){
+            if(array[i].type === value){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+var sourceData = [];//4-digit data
+var ANZSCO2 = [];//2-digit data
+var filterSourceData = [];
+var selectOccupation = [];
+
+// Start the zomable treemap for job type-----------------
+window.addEventListener('message', function(e) {
+    var opts = e.data.opts,
+        data = e.data.data;
+
+    return main(opts, data);
+});
+
+var defaults = {
+    margin: {top: 24, right: 0, bottom: 0, left: 0},
+    rootname: "TOP",
+    format: ",d",
+    title: "",
+    width: 960,
+    height: 400
+};
+
+function main(o, data) {
+  var root,
+      opts = $.extend(true, {}, defaults, o),
+      formatNumber = d3.format(opts.format),
+      rname = opts.rootname,
+      margin = opts.margin,
+      theight = 36 + 16;
+
+  $('#treemap').width(opts.width).height(opts.height);
+  var width = opts.width - margin.left - margin.right,
+      height = opts.height - margin.top - margin.bottom - theight,
+      transitioning;
+  
+  var color = d3.scale.category20c();
+  
+  var x = d3.scale.linear()
+      .domain([0, width])
+      .range([0, width]);
+  
+  var y = d3.scale.linear()
+      .domain([0, height])
+      .range([0, height]);
+  
+  var treemap = d3.layout.treemap()
+      .children(function(d, depth) { return depth ? null : d._children; })
+      .sort(function(a, b) { return a.value - b.value; })
+      .ratio(height / width * 0.5 * (1 + Math.sqrt(5)))
+      .round(false);
+  
+  var svg = d3.select("#treemap").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.bottom + margin.top)
+      .style("margin-left", -margin.left + "px")
+      .style("margin.right", -margin.right + "px")
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .style("shape-rendering", "crispEdges");
+  
+  var grandparent = svg.append("g")
+      .attr("class", "grandparent");
+  
+  grandparent.append("rect")
+      .attr("y", -margin.top)
+      .attr("width", width)
+      .attr("height", margin.top);
+  
+  grandparent.append("text")
+      .attr("x", 6)
+      .attr("y", 6 - margin.top)
+      .attr("dy", ".75em");
+
+  if (opts.title) {
+    $("#treemap").prepend("<p class='title'>" + opts.title + "</p>");
+  }
+  if (data instanceof Array) {
+    root = { key: rname, values: data };
+  } else {
+    root = data;
+  }
+    
+  initialize(root);
+  accumulate(root);
+  layout(root);
+  //console.log(root);
+  display(root);
+
+  if (window.parent !== window) {
+    var myheight = document.documentElement.scrollHeight || document.body.scrollHeight;
+    window.parent.postMessage({height: myheight}, '*');
+  }
+
+  function initialize(root) {
+    root.x = root.y = 0;
+    root.dx = width;
+    root.dy = height;
+    root.depth = 0;
+  }
+
+  // Aggregate the values for internal nodes. This is normally done by the
+  // treemap layout, but not here because of our custom implementation.
+  // We also take a snapshot of the original children (_children) to avoid
+  // the children being overwritten when when layout is computed.
+  function accumulate(d) {
+    return (d._children = d.values)
+        ? d.value = d.values.reduce(function(p, v) { return p + accumulate(v); }, 0)
+        : d.value;
+  }
+
+  // Compute the treemap layout recursively such that each group of siblings
+  // uses the same size (1×1) rather than the dimensions of the parent cell.
+  // This optimizes the layout for the current zoom state. Note that a wrapper
+  // object is created for the parent node for each group of siblings so that
+  // the parent’s dimensions are not discarded as we recurse. Since each group
+  // of sibling was laid out in 1×1, we must rescale to fit using absolute
+  // coordinates. This lets us use a viewport to zoom.
+  function layout(d) {
+    if (d._children) {
+      treemap.nodes({_children: d._children});
+      d._children.forEach(function(c) {
+        c.x = d.x + c.x * d.dx;
+        c.y = d.y + c.y * d.dy;
+        c.dx *= d.dx;
+        c.dy *= d.dy;
+        c.parent = d;
+        layout(c);
+      });
+    }
+  }
+
+  function display(d) {
+    var code = getCode(d.key)
+    var isLowest = code.length===2 ? true : false;
+    grandparent
+        .datum(d.parent)
+        .on("click", transition)
+        .select("text")
+        .text(name(d));
+
+    var g1 = svg.insert("g", ".grandparent")
+        .datum(d)
+        .attr("class", "depth");
+
+    var g = g1.selectAll("g")
+        .data(d._children)
+        .enter().append("g");
+
+    g.filter(function(d) { return d._children; })
+        .classed("children", true)
+        .on("click", transition);
+
+    var children = g.selectAll(".child")
+        .data(function(d) { return d._children || [d]; })
+        .enter().append("g")
+        .style("cursor","pointer")
+        .on("click", function(d) { 
+            // click function called when user click unit group (4-digit-code occupation)
+            if(isLowest){
+                var occupationCode = getCode(d.key);
+                var found = false;
+                for(var j = 0; j < selectOccupation.length; j++){
+                    if(selectOccupation[j].code === occupationCode){
+                        found = true;
+                    }
+                }
+                if(!found){
+                    var index = selectOccupation.length;
+                    selectOccupation[index] = {code: "", title: "", num: 0, type: 0, code2: ""};
+                    selectOccupation[index].code = occupationCode;
+                    selectOccupation[index].title = d.key;
+                    selectOccupation[index].num = d.value;
+                    selectOccupation[index].type = getCode(d.code1);
+                    selectOccupation[index].code2 = getCode(d.code2);
+                    typeBubbleGraph();
+                    typeLineGraph();
+                    var deleteBubble = document.getElementById("deleteBubble");
+                    deleteBubble.style.visibility = "visible";
+                    deleteBubble.innerText = "Remove "+d.key;
+                    deleteBubble.value = occupationCode;
+                }
+            }
+        });
+        
+    children.append("rect")
+        .attr("class", "child")
+        .call(rect)
+        .append("title")
+        .text(function(d) { return d.key + " (" + formatNumber(d.value) + ")"; });
+
+    children.append("text")
+        .attr("class", "ctext")
+        .text(function(d) { return d.key; })
+        .call(text2);
+
+    g.append("rect")
+        .attr("class", "parent")
+        .call(rect);
+
+    // top heading
+    var t = g.append("text")
+        .attr("class", "ptext")
+        .attr("dy", ".75em");
+        //.attr("font-size","15");
+
+    t.append("tspan")
+        .text(function(d) { return d.key; });
+    t.append("tspan")
+        .attr("dy", "1.0em")
+        .text(function(d) { return formatNumber(d.value); });
+    t.call(text);
+
+    g.selectAll("rect")
+        .style("fill", function(d) { return color(d.key); });
+
+    function transition(d) {
+      if (transitioning || !d) return;
+      transitioning = true;
+
+      var g2 = display(d),
+          t1 = g1.transition().duration(750),
+          t2 = g2.transition().duration(750);
+
+      // Update the domain only after entering new elements.
+      x.domain([d.x, d.x + d.dx]);
+      y.domain([d.y, d.y + d.dy]);
+
+      // Enable anti-aliasing during the transition.
+      svg.style("shape-rendering", null);
+
+      // Draw child nodes on top of parent nodes.
+      svg.selectAll(".depth").sort(function(a, b) { return a.depth - b.depth; });
+
+      // Fade-in entering text.
+      g2.selectAll("text").style("fill-opacity", 0);
+
+      // Transition to the new view.
+      t1.selectAll(".ptext").call(text).style("fill-opacity", 0);
+      t1.selectAll(".ctext").call(text2).style("fill-opacity", 0);
+      t2.selectAll(".ptext").call(text).style("fill-opacity", 1);
+      t2.selectAll(".ctext").call(text2).style("fill-opacity", 1);
+      t1.selectAll("rect").call(rect);
+      t2.selectAll("rect").call(rect);
+
+      // Remove the old node when the transition is finished.
+      t1.remove().on("end", function() {
+        svg.style("shape-rendering", "crispEdges");
+        transitioning = false;
+      });
+    }
+
+    return g;
+  }
+
+  function text(text) {
+    text.selectAll("tspan")
+        .attr("x", function(d) { return x(d.x) + 6; })
+    text.attr("x", function(d) { return x(d.x) + 6; })
+        .attr("y", function(d) { return y(d.y) + 6; })
+        .style("opacity", function(d) { return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0; });
+  }
+
+  function text2(text) {
+    text.attr("x", function(d) { return x(d.x + d.dx) - this.getComputedTextLength() - 6; })
+        .attr("y", function(d) { return y(d.y + d.dy) - 6; })
+        .style("opacity", function(d) { return this.getComputedTextLength() < x(d.x + d.dx) - x(d.x) ? 1 : 0; });
+  }
+
+  function rect(rect) {
+    rect.attr("x", function(d) { return x(d.x); })
+        .attr("y", function(d) { return y(d.y); })
+        .attr("width", function(d) { return x(d.x + d.dx) - x(d.x); })
+        .attr("height", function(d) { return y(d.y + d.dy) - y(d.y); });
+  }
+
+  function name(d) {
+    return d.parent
+        ? name(d.parent) + " / " + d.key + " (" + formatNumber(d.value) + ")"
+        : d.key + " (" + formatNumber(d.value) + ")";
+  }
+}
+
+if (window.location.hash === "") {
+    //4-digit data load
+    //load data for treemap
+    d3.csv("data/ANZSCO4.csv", function(data) {
+        //alert(JSON.stringify(data));
+        //typeGraph(ANZSCO);
+        sourceData = data;
+        var filterData = [];
+        for(var i = 0; i < data.length; i++){
+            var key = data[i].Anzsco4Code+"."+data[i].AnzscoTitle;
+            if(data[i].State==="AUST"){
+                var found = false;
+                for(var j = 0; j < filterData.length; j++){
+                    if(filterData[j].key === key){
+                        filterData[j].value += parseInt(data[i].NoOfVacancies);
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    var index = filterData.length;
+                    filterData[index]={key: "", code1: "", code2: "", value: 0};
+                    
+                    filterData[index].key = key;
+                    filterData[index].code1 = types[data[i].Anzsco1Code-1];
+                    filterData[index].code2 = data[i].Anzsco2Code+"."+data[i].Anzsco2Title;
+                    filterData[index].value = parseInt(data[i].NoOfVacancies);
+                }
+            }
+        }
+        //alert(JSON.stringify(filterData));
+        var treeData = d3.nest().key(function(d) { return d.code1; }).key(function(d) { return d.code2; }).entries(filterData);
+        //console.log(treeData);
+        main({title: "Job Vacancies"}, {key: "Occupations", values: treeData});
+
+    });
+    
+    //2-digit data load for line graph and map
+    d3.csv("data/ANZSCO2.csv", function(data) {
+        ANZSCO2 = data;
+    });
+}
+
+// End the zomable treemap for job type-------------------
+function filterData(){
+    filterSourceData = [];
+    var state = document.getElementById("state").value;
+    var type = JSON.parse(JSON.stringify(selectOccupation));
+    for(var i = 0; i < sourceData.length; i++){
+        var code4 = sourceData[i].Anzsco4Code;
+        if(sourceData[i].State===state && checkObjectValueInArray(code4,selectOccupation)){
+            filterSourceData[filterSourceData.length]=sourceData[i];
+        }
+    }
+}
+
+function deleteAllSelect(){
+    selectOccupation = [];
+    var content = document.getElementById("content");
+    content.style.display = "none"; 
+    document.getElementById("subGraphContainer").style.display = "none"; 
+}
+
+function deteleBubble(){
+    var deleteBubble = document.getElementById("deleteBubble");
+    //alert("value "+deleteBubble.value);
+    //alert("text "+deleteBubble.innerText);
+    for(var i=0; i<selectOccupation.length; i++){
+        if(selectOccupation[i].code===deleteBubble.value){
+            selectOccupation.splice(i,1);
+            break;
+        }
+    }
+    deleteBubble.style.visibility = "hidden";
+    typeBubbleGraph();
+    typeLineGraph();
+    if(selectOccupation.length===0){
+        var content = document.getElementById("content");
+        content.style.display = "none"; 
+        document.getElementById("subGraphContainer").style.display = "none";
+    }
+}
+
+function resetBubble(){
+    var state = document.getElementById("state").value;
+    var zoom = document.getElementById("bubbleRange");
+    if(state==="AUST"){
+        zoom.value = 10000;
+    }else if(state!=="AUST"){
+        zoom.value = 1000;
+    }
+    
+    typeBubbleGraph();
+}
+
+function setBubbleZoom(){
+    var state = document.getElementById("state").value;
+    var zoom = document.getElementById("bubbleRange");
+    if(state!=="AUST" && zoom.value === "10000"){
+        zoom.value = 1000;
+    }else if(state==="AUST" && zoom.value === "1000"){
+        zoom.value = 10000;
+    }
+    
+    typeBubbleGraph();
+    typeLineGraph();
+}
+// Start the type bubble graph-----------------
+var bubbleData = [];
+
+function typeBubbleGraph(){
+    var content = document.getElementById("content");
+    content.style.display = "block"; 
+    document.getElementById("subGraphContainer").style.display = "block"; 
+    var state = document.getElementById("state").value;
+    var zoomout = document.getElementById("bubbleRange").value;
+    // deal with the data
+    var type = JSON.parse(JSON.stringify(selectOccupation));
+    filterData();
+    if(state!=="AUST"){
+        for(var j = 0; j < type.length; j++){
+            type[j].num = 0;
+            for(var i = 0; i < filterSourceData.length; i++){
+                var code4 = filterSourceData[i].Anzsco4Code;
+                if(filterSourceData[i].State===state && code4 === type[j].code){
+                    type[j].num += parseInt(filterSourceData[i].NoOfVacancies);
+                }
+            }
+        }
+    }
+    //alert(type[0].num + " --- "+selectOccupation[0].num);
+    /*
+    for(var i = 0; i < data.length; i++){
+        if(data[i].Level==="3" && data[i].State==="AUST"){
+            var code = data[i].AnzscoCode;
+            var num = parseInt(data[i].NoofVacancies);
+            //alert(type.length);
+            for(var j = 0; j < type.length; j++){
+                if(type[j].code === code){
+                    type[j].num+=num;
+                }
+            }
+            if(!checkObjectValueInArray(code, type)){
+                var index = type.length;
+                type[index] = {code: "", title: "", num: 0, type: 0};
+                type[index].code = code;
+                type[index].title = data[i].Title;
+                type[index].num = num;
+                type[index].type = code.charAt(0);
+            }
+        }
+    }
+    */
+    //alert(JSON.stringify(type));
+    //console.log(type)
+    
+    var width = 480,
+        height = 300,
+        padding = 1.5, // separation between same-color circles
+        clusterPadding = 6, // separation between different-color circles
+        maxRadius = 12;
+
+    var n = type.length, // total number of circles
+        m = 8; // number of distinct clusters
+
+    //var color = d3.scale.category10().domain(d3.range(m));
+
+    // The largest node for each cluster.
+    var clusters = new Array(m);
+
+    var nodeIndex = 0; 
+    var nodes = d3.range(n).map(function() {
+      var //i = Math.floor(Math.random() * m),
+          i = parseInt(type[nodeIndex].type),
+          //r = Math.sqrt((i + 1) / m * -Math.log(Math.random())) * maxRadius,
+          r = type[nodeIndex].num/zoomout,
+          d = {cluster: i, 
+               radius: r, 
+               code: type[nodeIndex].code, 
+               code2: type[nodeIndex].code2, 
+               title: type[nodeIndex].title, 
+               num: type[nodeIndex].num, 
+               select: false,
+               x: Math.cos(i / m * 2 * Math.PI) * 200 + width / 2 + Math.random(),
+               y: Math.sin(i / m * 2 * Math.PI) * 200 + height / 2 + Math.random()
+               };
+      nodeIndex++;
+      //alert(clusters[i]);
+      if (!clusters[i] || (r > clusters[i].radius)) clusters[i] = d;
+      return d;
+    });
+    bubbleData = nodes;
+    //alert(JSON.stringify(clusters));
+    //alert(JSON.stringify(nodes));
+    /*
+    var force = d3.layout.force()
+        .nodes(nodes)
+        .size([width, height])
+        .gravity(0)
+        .charge(0)
+        .on("tick", tick)
+        .start();
+        */
+       
+    var simulation = d3.forceSimulation()
+    // keep entire simulation balanced around screen center
+    .force('center', d3.forceCenter(width/2, height/2))
+
+    // pull toward center
+    .force('attract', d3.forceAttract()
+      .target([width/2, height/2])
+      .strength(0.01))
+
+    // cluster by section
+    .force('cluster', d3.forceCluster()
+      .centers(function (d) { return clusters[d.cluster]; })
+      .strength(0.5)
+      .centerInertia(0.1))
+
+    // apply collision with padding
+    .force('collide', d3.forceCollide(function (d) { return d.radius + padding; })
+      .strength(0))
+
+    .on('tick', layoutTick)
+    .nodes(nodes);
+
+    d3.select('#typeGraph').select("svg").remove();
+
+    var svg = d3.select('#typeGraph').append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    var circle = svg.selectAll("circle")
+        .data(nodes)
+        .enter().append("circle")
+        .attr("r", function(d) { return d.radius; })
+        .style("fill", function(d) { return typeColor(d.cluster/10); })
+        .style("cursor","pointer")
+        //.style("stroke", "black")
+        .call(d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended)
+            )
+        .on("mouseover", function(d) {		
+                div.transition()		
+                    .duration(200)		
+                    .style("opacity", .9);		
+                div.html(d.title+"<br/>"+d.num)	
+                    .style("left", (d3.event.pageX) + "px")		
+                    .style("top", (d3.event.pageY - 28) + "px");	
+                })					
+            .on("mouseout", function(d) {		
+                div.transition()		
+                    .duration(500)		
+                    .style("opacity", 0);	
+            });
+            
+    circle.on("click", function(d) {
+            d.select=!d.select;
+            updateCircles();
+            //alert(JSON.stringify(d));
+            var deleteBubble = document.getElementById("deleteBubble");
+            deleteBubble.style.visibility = "visible";
+            deleteBubble.innerText = "Remove "+d.title;
+            deleteBubble.value = d.code;
+        });
+        
+    function updateCircles(){
+        var selectType=[];
+        var circle = svg.selectAll("circle")
+        .data(nodes);
+        circle.exit().remove();
+        circle.style("stroke", function(d) {
+                if(d.select){
+                    selectType[selectType.length] = d.code;
+                    return "black";
+                }else{
+                    var i = selectType.indexOf(d.code);
+                    if(i !== -1) {
+                        selectType.splice(i, 1);
+                    }  
+                }
+            }).style("stroke-width", function(d) {
+                return 2;
+            });
+        
+        bubbleData = nodes;
+        typeLineGraph();
+        /*
+        alert(JSON.stringify(selectType));
+        for(var i=0; i<data.length;i++){
+            var code = data[i].AnzscoCode;
+            if(selectType.includes(code)){}
+        }*/
+        
+    }
+
+    function dragstarted (d) {
+        if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged (d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+    }
+
+    function dragended (d) {
+        if (!d3.event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+    
+    // ramp up collision strength to provide smooth transition
+    var transitionTime = 3000;
+    var t = d3.timer(function (elapsed) {
+      var dt = elapsed / transitionTime;
+      simulation.force('collide').strength(Math.pow(dt, 2) * 0.7);
+      if (dt >= 1.0) t.stop();
+    });
+
+    function layoutTick (e) {
+      circle
+        .attr('cx', function (d) { return d.x; })
+        .attr('cy', function (d) { return d.y; })
+        .attr('r', function (d) { return d.radius; });
+    }
+    
+}
+// End the type bubble graph-------------------
+
+// Start the type line graph-------------------
+
+// Start Line Group Change Event
+// onchange
+var groups = document.forms['groupForm'].elements['group'];
+
+for (var i=0, len=groups.length; i<len; i++) {
+    groups[i].onchange = function() {
+        //alert("change");
+        //alert(JSON.stringify(selectOccupation));
+        if(this.value==="4"){
+            typeLineGraph();
+        }else{
+            var level = parseInt(this.value)+1;
+            var state = document.getElementById("state").value;
+            
+            var filterSourceData = [];
+            for(var i = 0; i < ANZSCO2.length; i++){
+                if(ANZSCO2[i].Level===level.toString() && ANZSCO2[i].State===state){
+                    filterSourceData[filterSourceData.length] = ANZSCO2[i];
+                }
+            }
+            //alert(JSON.stringify(filterSourceData));
+            var typeDateData = [];
+    
+            var start = parseDate("01/03/2006");
+            var end = parseDate("01/02/2017");
+
+            //var format = d3.timeFormat("%Y-%m-%d");
+
+            while(start <= end){
+                var index = typeDateData.length;
+                typeDateData.push({});
+                var date = new Date(start.getTime());
+                typeDateData[index].date = date;
+                //alert("date  "+typeDateData[index].date);  
+                for(var i = 0; i < filterSourceData.length; i++){
+                    var code = filterSourceData[i].AnzscoCode;
+                    var date = parseDate(filterSourceData[i].Date);
+                    if(filterSourceData[i].State===state && checkObjectValue2InArray(code,selectOccupation,parseInt(this.value)) && date.getTime() === start.getTime()){
+                        typeDateData[index][code] = parseFloat(filterSourceData[i].NoOfVacancies);
+                    }
+                }
+              
+                var newDate = start.setMonth(start.getMonth()+1);
+                start = new Date(newDate);
+            }
+            var typeData = [];
+            //console.log(typeDateData[typeDateData.length]);
+
+            for (var i in Object.keys(typeDateData[0])) {
+                var key = Object.keys(typeDateData[0])[i];
+                if(key!=="date"){
+                    var typeIndex = typeData.length;
+                    typeData[typeIndex]={id:key,values:[]};
+                    for(var j = 0; j<typeDateData.length;j++){
+                        var valueIndex = typeData[typeIndex].values.length;
+                        typeData[typeIndex].values[valueIndex] = {date: typeDateData[j].date, num:typeDateData[j][key]}
+                    }
+                }
+            }
+            console.log(typeDateData);console.log(typeData);
+            drawLines(typeDateData,typeData);
+            
+        }
+    };
+}
+
+// disable submission of all forms on this page
+for (var i=0, len=document.forms.length; i<len; i++) {
+    document.forms[i].onsubmit = function() { return false; };
+}
+// End Line Group Change Event
+
+var parseDate = d3.timeParse("%d/%m/%Y");
+function typeLineGraph(){
+    for (var i=0, len=groups.length; i<len; i++) {
+        groups[i].checked = false;
+        if(groups[i].value==="4"){
+            groups[i].checked = true;
+        }
+    }
+    //alert(JSON.stringify(bubbleData));
+    var state = document.getElementById("state").value;
+    var typeDateData = [];
+    
+    var start = parseDate("01/03/2006");
+    var end = parseDate("01/02/2017");
+    
+    //var format = d3.timeFormat("%Y-%m-%d");
+
+    while(start <= end){
+        var index = typeDateData.length;
+        typeDateData[index] = {}
+        typeDateData[index].date = start;
+        //alert("date  "+typeDateData[index].date);  
+        for(var i = 0; i < filterSourceData.length; i++){
+            var code4 = filterSourceData[i].Anzsco4Code;
+            var date = parseDate(filterSourceData[i].Date);
+            if(filterSourceData[i].State===state && checkObjectValueInArray(code4,selectOccupation) && date.getTime() === start.getTime()){
+                typeDateData[index][code4] = parseInt(filterSourceData[i].NoOfVacancies);
+            }
+        }
+        var newDate = start.setMonth(start.getMonth()+1);
+        start = new Date(newDate);
+    }
+    var typeData = [];
+    
+    for (var i in Object.keys(typeDateData[0])) {
+        var key = Object.keys(typeDateData[0])[i];
+        if(key!=="date"){
+            var typeIndex = typeData.length;
+            typeData[typeIndex]={id:key,values:[]};
+            for(var j = 0; j<typeDateData.length;j++){
+                var valueIndex = typeData[typeIndex].values.length;
+                typeData[typeIndex].values[valueIndex] = {date: typeDateData[j].date, num:typeDateData[j][key]}
+            }
+        }
+    }
+    //console.log(typeDateData);console.log(typeData);
+    drawLines(typeDateData,typeData);
+};
+
+function drawLines(data,cities) {
+    d3.select('#typeLine').select("svg").remove();
+    var svg = d3.select('#typeLine').append("svg")
+            .attr("width", 480)
+            .attr("height", 300),
+        margin = {top: 20, right: 80, bottom: 30, left: 50},
+        width = svg.attr("width") - margin.left - margin.right,
+        height = svg.attr("height") - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scaleTime().range([0, width]),
+        y = d3.scaleLinear().range([height, 0]),
+        z = d3.scaleOrdinal(d3.schemeCategory10);
+
+    var line = d3.line()
+        .curve(d3.curveBasis)
+        .x(function(d) { return x(d.date); })
+        .y(function(d) { return y(d.num); });
+
+  /*
+  var cities = data.columns.slice(1).map(function(id) {
+    return {
+      id: id,
+      values: data.map(function(d) {
+        return {date: d.date, temperature: d[id]};
+      })
+    };
+  });
+  */
+  
+  //alert(JSON.stringify(cities))
+
+  x.domain(d3.extent(data, function(d) { return d.date; }));
+
+  y.domain([
+    d3.min(cities, function(c) { return d3.min(c.values, function(d) { return d.num; }); }),
+    d3.max(cities, function(c) { return d3.max(c.values, function(d) { return d.num; }); })
+  ]);
+  
+  //console.log(cities);
+
+  z.domain(cities.map(function(c) { return c.id; }));
+
+  g.append("g")
+      .attr("class", "axis axis--x")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+  g.append("g")
+      .attr("class", "axis axis--y")
+      .call(d3.axisLeft(y))
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", "0.71em")
+      .attr("fill", "#000")
+      .text("No. of Vacancies");
+
+  var city = g.selectAll(".city")
+    .data(cities)
+    .enter().append("g")
+      .attr("class", "city");
+
+  var hasSelect = false;
+  for(var i=0; i<bubbleData.length; i++){
+    if(bubbleData[i].select===true){
+        hasSelect = true;
+    }
+  }
+  var checkForC1C2 = {};
+  
+  city.append("path")
+      .attr("class", "line")
+      .attr("d", function(d) { return line(d.values); })
+      .style("stroke", function(d) { 
+            for(var i=0; i<bubbleData.length; i++){
+                if(bubbleData[i].code===d.id || bubbleData[i].code2===d.id || bubbleData[i].cluster.toString()===d.id){
+                    //alert((types.indexOf(bubbleData[i].cluster)+1)/10);
+                    return typeColor(bubbleData[i].cluster/10);
+                }
+            }
+            return z(d.id); 
+        })
+        .style("opacity", function(d){
+            if(hasSelect){
+                console.log(bubbleData);
+                for(var i=0; i<bubbleData.length; i++){
+                    if(bubbleData[i].code===d.id){
+                        if(bubbleData[i].select===true){
+                            return 1;
+                        }
+                    }
+                    if(bubbleData[i].code2===d.id || bubbleData[i].cluster.toString()===d.id){
+                        checkForC1C2[d.id] = checkForC1C2[d.id] || bubbleData[i].select? true:false;
+                        if(checkForC1C2[d.id]){
+                            return 1;
+                        }
+                    }
+                }
+                return .2;
+            }else{
+                return 1;
+            }
+        });//line color
+
+  city.append("text")
+      .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
+      .attr("transform", function(d) { return "translate(" + x(d.value.date) + "," + y(d.value.num) + ")"; })
+      .attr("x", 3)
+      .attr("dy", "0.35em")
+      .style("font", "10px sans-serif")
+      .text(function(d) { return d.id; })
+      .style("opacity", function(d){
+            if(hasSelect){
+                for(var i=0; i<bubbleData.length; i++){
+                    if(bubbleData[i].code===d.id){
+                        if(bubbleData[i].select===true){
+                            return 1;
+                        }
+                    }
+                    if(bubbleData[i].code2===d.id || bubbleData[i].cluster.toString()===d.id){
+                        if(checkForC1C2[d.id]){
+                            return 1;
+                        }
+                    }
+                }
+                return .2;
+            }else{
+                return 1;
+            }
+        });//text color
+};
+
+// End the type line graph---------------------
+
+// Start the au map graph----------------------
+
+var width = 960,
+  height = 300,
+  active=d3.select(null);
+var zoom = d3.zoom()
+// no longer in d3 v4 - zoom initialises with zoomIdentity, so it's already at origin
+// .translate([0, 0]) 
+// .scale(1) 
+.scaleExtent([1, 8])
+.on("zoom", zoomed);
+
+var projection = d3.geoConicConformal()
+.rotate([-132, 0])
+.center([0, -27])
+.parallels([-18, -36])
+.scale(Math.min(height * 1.2, width * 0.8))
+.translate([width / 2, height / 2])
+.precision(0.1);
+var path = d3.geoPath()
+.projection(projection);
+
+var svg = d3.select("#aumap").append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+var g = svg.append("g");
+d3.json("data/au.json", function(error, australia) {
+if (error) throw error;
+var aaa =topojson.feature(australia, australia.objects.states).features;
+alert(JSON.stringify(aaa));
+g.attr("class", "states")
+    .selectAll("path")
+    .data(topojson.feature(australia, australia.objects.states).features)
+    .enter().append("path")
+    .attr("d", path)
+    .on("click",clicked)
+    .style("fill", function(d) {
+        alert(d.properties.region); 
+    });
+});
+
+d3.select(self.frameElement).style("height", height + "px");
+
+function clicked(d) {
+    if (active.node() === this) return reset();
+    alert(JSON.stringify(d.properties));
+    active.classed("active", false);
+    active = d3.select(this).classed("active", true);
+
+    var bounds = path.bounds(d),
+      dx = bounds[1][0] - bounds[0][0],
+      dy = bounds[1][1] - bounds[0][1],
+      x = (bounds[0][0] + bounds[1][0]) / 2,
+      y = (bounds[0][1] + bounds[1][1]) / 2,
+      scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height))),
+      translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+    svg.transition()
+      .duration(750)
+      // .call(zoom.translate(translate).scale(scale).event); // not in d3 v4
+      .call( zoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale) ); // updated for d3 v4
+}
+
+function reset() {
+    active.classed("active", false);
+    active = d3.select(null);
+
+    svg.transition()
+      .duration(750)
+      // .call( zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1) ); // not in d3 v4
+      .call( zoom.transform, d3.zoomIdentity ); // updated for d3 v4
+}
+
+function zoomed() {
+    g.style("stroke-width", 1.5 / d3.event.transform.k + "px");
+    // g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")"); // not in d3 v4
+    g.attr("transform", d3.event.transform); // updated for d3 v4
+}
+
+// End the au map graph------------------------
+
+</script>
+
+</body>
+</html>
