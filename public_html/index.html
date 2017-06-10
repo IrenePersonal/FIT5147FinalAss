@@ -14,6 +14,7 @@
 <script src="https://unpkg.com/d3-force-attract@latest"></script>
 <script src="https://unpkg.com/d3-force-cluster@latest"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+<script src="http://vizjs.org/viz.v1.1.0.min.js"></script>
 
 <style>
 body, html {
@@ -48,16 +49,16 @@ ul#type li {
 
 div.tooltip {	
     position: absolute;			
-    text-align: center;			
+    text-align: center;	
+    vertical-align: middle;
     width: 300px;					
-    height: 42px;					
-    padding: 2px;				
-    font: 12px sans-serif;		
+    padding: 5px 5px;				
+    font: 14px sans-serif;		
     background: lightblue;	
     border: 0px;		
     border-radius: 8px;			
     pointer-events: none;
-    z-index:1000;
+    z-index:1000;    
 }
 
 /* styles for float desc -------*/
@@ -75,6 +76,11 @@ div.tooltip {
     height:1px;
     margin-left:-20px;
     text-align:left;
+}
+
+.float{
+    position:absolute;
+    width:250px;
 }
 
 /* styles for dorpdown ---------*/
@@ -109,10 +115,10 @@ text {
   font-weight: bold;
 }
 
-rect {
+/*rect {
   fill: none;
   stroke: #fff;
-}
+}*/
 
 rect.parent,
 .grandparent rect {
@@ -157,8 +163,8 @@ rect.parent {
   stroke-width: 1.5px;
 }
 
-/* styles for reset button ------*/
-#reset {
+/* styles for buttons ------*/
+#reset, #deleteAll {
     background-color: white; /* Green */
     border: 1px solid gainsboro;
     color: black;
@@ -169,6 +175,24 @@ rect.parent {
     font-size: 16px;
     cursor: pointer;
     border-radius: 4px;
+}
+
+#view, #timePeriod {
+    background-color: #31b0d5; /* Green */
+    border: 1px solid gainsboro;
+    color: white;
+    padding: 8px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#view:disabled,
+#view[disabled]{
+    background-color: gainsboro;
 }
 
 #deleteBubble {
@@ -188,21 +212,11 @@ rect.parent {
 
 #main {
   float: left;
-  width: 750px;
-}
-
-#sidebar {
-  float: right;
-  width: 100px;
 }
 
 #sequence {
-  width: 600px;
-  height: 70px;
-}
-
-#legend {
-  padding: 10px 0 0 3px;
+  width: 500px;
+  height: 30px;
 }
 
 #sequence text, #legend text {
@@ -218,18 +232,15 @@ rect.parent {
   stroke: #fff;
 }
 
-#explanation {
-  position: absolute;
-  top: 260px;
-  left: 305px;
-  width: 140px;
-  text-align: center;
-  color: #666;
-  z-index: -1;
-}
-
-#percentage {
-  font-size: 2.5em;
+#centerState {
+    position: absolute;
+    top: 160px;
+    left: 110px;
+    width: 140px;
+    text-align: center;
+    color: #666;
+    font-size: 2.5em;
+    z-index: 0;
 }
 
 /* styles for australian map ----------*/
@@ -247,11 +258,38 @@ rect.parent {
       fill: orange;
   }
 
+  
+/* styles for vertical bp map ----------*/
+
+text{
+	font-size:12px;
+}
+.mainBars rect{
+  shape-rendering: auto;
+  fill-opacity: 0;
+  stroke-width: 0.5px;
+  stroke: rgb(0, 0, 0);
+  stroke-opacity: 0;
+}
+.subBars{
+	shape-rendering:crispEdges;
+}
+.edges{
+	stroke:none;
+	fill-opacity:0.5;
+}
+.header{
+	text-anchor:middle;
+	font-size:16px;
+}
+line{
+	stroke:grey;
+}
 </style>
 <body>
 
 <!-- Links (sit on top) -->
-<div class="w3-top">
+<div class="w3-top" style="z-index:10000;">
   <div class="w3-row w3-padding w3-black">
     <div class="w3-col s3">
       <a href="#" class="w3-button w3-block w3-black">HOME</a>
@@ -331,11 +369,167 @@ rect.parent {
       </a>
     </div>
 
-    <div id="jobtype" class="w3-container menu w3-padding-48 w3-card-2">
+    <div id="jobtype" class="w3-container menu w3-padding-16 w3-card-2">
         <div id="treemap"></div>
+        <!--Three dropdown list for occupation categories sorted by their no. of vacancies. 
+            Allow user to choose any one to view details in bubble and line graph.-->
+        <div>
+            <select id="majorList" style="font-size: 14px;width:270px;" onchange="selectGroup()">
+            </select>
+            <select id="subList" style="font-size: 14px;width:270px;" onchange="selectSubGroup()">
+            </select>
+            <select id="unitList" style="font-size: 14px;width:270px;" onchange="allowView()">
+            </select>
+            <button id="view" onclick="addBubble()" disabled>View Details</button>
+            <script>
+                function initDropDown(){
+                    var major = document.getElementById("majorList");
+                    major.innerHTML = "";
+                    var sub = document.getElementById("subList");
+                    sub.innerHTML = "";
+                    //create first option for every dropdown list
+                    option = document.createElement( 'option' );
+                    option.value = "all";
+                    option.text = "---Major Group---";
+                    major.add( option );
+                    option1 = document.createElement( 'option' );
+                    option1.value = "all";
+                    option1.text = "---Sub Group---";
+                    sub.add( option1 );
+
+                    //get occupations at different levels from treeData
+                    list = [];
+                    list = treeData.sort(function(a,b){
+                        return b.value - a.value;
+                    });
+
+                    sublist = [];
+                    treeData.forEach(function(d){
+                        d.values.forEach(function(v){
+                            sublist[sublist.length]=v;
+                        });
+                    });
+                    sublist = sublist.sort(function(a,b){
+                        return b.value - a.value;
+                    });
+
+                    list.forEach(function(d){
+                        addOption("majorList",d.key);
+                    });
+                    sublist.forEach(function(d){
+                        addOption("subList",d.key);
+                    });
+                    initUnitGroup();
+                }
+                
+                function initUnitGroup(){
+                    var unit = document.getElementById("unitList");
+                    unit.innerHTML = "";
+                    option2 = document.createElement( 'option' );
+                    option2.value = "all";
+                    option2.text = "---Unit Group---";
+                    unit.add( option2 );
+                    
+                    var major = document.getElementById("majorList").value;
+                    if(major==="all"){
+                        unitlist = [];
+                        sublist.forEach(function(d){
+                            d.values.forEach(function(v){
+                                unitlist[unitlist.length]=v;
+                            });
+                        });
+                        unitlist = unitlist.sort(function(a,b){
+                            return b.value - a.value;
+                        });
+                        unitlist.forEach(function(d){
+                            addOption("unitList",d.key);
+                        });
+
+                    }else{
+                        var newunitlist = unitlist.filter(function(d){
+                            return d.code1 === major;
+                        });
+                        newunitlist.forEach(function(d){
+                            addOption("unitList",d.key);
+                        });
+                    }
+                }
+                
+                function selectGroup(){
+                    var view = document.getElementById("view");
+                    view.disabled = true;
+                    var major = document.getElementById("majorList").value;
+                    if(major!=="all"){
+                        var newsublist = sublist.filter(function(d){
+                            return d.parent.key === major;
+                        });
+                        var newunitlist = unitlist.filter(function(d){
+                            return d.code1 === major;
+                        });
+
+                        var sub = document.getElementById("subList");
+                        sub.innerHTML="";
+                        var unit = document.getElementById("unitList");
+                        unit.innerHTML="";
+
+                        option = document.createElement( 'option' );
+                        option.value = "all";
+                        option.text = "---Sub Group---";
+                        sub.add( option );
+                        option2 = document.createElement( 'option' );
+                        option2.value = "all";
+                        option2.text = "---Unit Group---";
+                        unit.add( option2 );
+
+                        newsublist.forEach(function(d){
+                            addOption("subList",d.key);
+                        });
+                        newunitlist.forEach(function(d){
+                            addOption("unitList",d.key);
+                        });
+                        
+                    }else{
+                        initDropDown();
+                    }
+
+                }
+                
+                function selectSubGroup(){
+                    var view = document.getElementById("view");
+                    view.disabled = true;
+                    var sub = document.getElementById("subList").value;
+                    if(sub!=="all"){
+                        var newunitlist = unitlist.filter(function(d){
+                            return d.code2 === sub;
+                        });
+                        var unit = document.getElementById("unitList");
+                        unit.innerHTML="";
+                        option2 = document.createElement( 'option' );
+                        option2.value = "all";
+                        option2.text = "---Unit Group---";
+                        unit.add( option2 );
+                        newunitlist.forEach(function(d){
+                            addOption("unitList",d.key);
+                        });
+                    }else{
+                        initUnitGroup();
+                    }
+                }
+                
+                function allowView(){
+                    var view = document.getElementById("view");
+                    view.disabled = true;
+                    var unit = document.getElementById("unitList").value;
+                    if(unit!=="all"){
+                        view.disabled = false;
+                    }
+                    
+                }
+            </script>
+        </div>
 
         <div id="content" class="w3-col s12" style ="display: none;">    
-          <div id="d" class="center">    
+          <div class="center">    
               <div class="center">
                   <select id="state" onchange="setBubbleZoom()" style="cursor:pointer">
                       <option value="AUST">Australia</option>
@@ -350,12 +544,13 @@ rect.parent {
                   </select>
                   <input type="range" id="bubbleRange" style="cursor:pointer;position:relative;z-index:1000;vertical-align:middle;" value="10000" min="10" max="20000" step="10" onchange="typeBubbleGraph()">
                   <button id="reset" onclick="resetBubble()">Resize</button>
-                  <button id="reset" onclick="deleteAllSelect()">Reset</button>
+                  <button id="deleteAll" onclick="deleteAllSelect()">Reset</button>
                   <button id="deleteBubble" style="max-width: 365px;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;" value="test" onclick="deteleBubble()">Remove</button>
               </div>  
               <div id="typeColor"></div>
           </div>  
         </div>  
+        
         <div id="subGraphContainer" style ="display: none;">
             <div id="typeGraph" class="w3-col s6" style="position:relative;z-index:100;"></div>
             <div id="typeLine" class="w3-col s6">
@@ -365,6 +560,7 @@ rect.parent {
                     <input type="radio" name="group" value=4 style="cursor:pointer" checked> Unit Group
                 </form>
             </div>
+            
             <script>
               var types = ['1.MANAGERS', '2.PROFESSIONALS', '3.TECHNICIANS AND TRADES WORKERS'
                   , '4.COMMUNITY AND PERSONAL SERVICE WORKERS', '5.CLERICAL AND ADMINISTRATIVE WORKERS'
@@ -387,11 +583,113 @@ rect.parent {
             <button id="selectedOneType" style="overflow: hidden;white-space: nowrap;text-overflow: ellipsis;" value="test" onclick="deteleBubble()">More Details</button>
             //document.getElementById("selectedOneType").style. = "block";
             <div id = "selectedOneType">aaa</div>-->
+            
+            From <input id="startDate" type="month" min="2006-03" max="2017-01" value="2006-03" onchange="changePeriod(this)"> 
+            To <input id="endDate" type="month" min="2006-04" max="2017-02" value="2017-02" onchange="changePeriod(this)">
+            
+            <script>
+                var startDate = document.getElementById("startDate");
+                var endDate = document.getElementById("endDate");
+
+                function changePeriod(e){
+                    //alert(convertDate(startDate.value));
+                    if(startDate.value !== "" && endDate.value !== ""){
+                        var start = parseDate(convertDate(startDate.value));
+                        var end = parseDate(convertDate(endDate.value));
+                        
+                        if(start<new Date("2006-03")){
+                            startDate.value="2006-03";
+                        }else if(start>new Date("2017-01")){
+                            startDate.value="2017-01";
+                        }
+                        
+                        if(end<new Date("2006-04")){
+                            endDate.value="2006-04";
+                        }else if(end>new Date("2017-02")){
+                            endDate.value="2017-02";
+                        }
+                        if(start>=end){
+                            var dateFormat = d3.time.format("%Y-%m");
+                            if(e.id==="startDate"){
+                                var date = new Date(end.getTime());
+
+                                start = date.setMonth(date.getMonth()-1);
+                                startDate.value = dateFormat(new Date(start));
+                            }else{
+                                var date = new Date(start.getTime());
+
+                                end = date.setMonth(date.getMonth()+1);
+                                endDate.value = dateFormat(new Date(end));
+                            }
+                        }
+                        typeLineGraph();
+                    }
+                }
+                
+                function convertDate(date){
+                    //convert date string format from "yyyy-mm" to "01/mm/yyyy"
+                    return "01/"+date.substr(5,2)+"/"+date.substr(0,4);
+                }
+            </script>
         </div>
     </div>
 
-    <div id="region" class="w3-container menu w3-padding-48 w3-card-2">
-        <div id="aumap"></div>
+    <div id="region" class="w3-container menu w3-padding-16 w3-card-2">
+        <div class="w3-col s12">    
+          <div class="center" style="position:relative;z-index:1000;">
+              <select id="year" onchange="changeMap()" style="cursor:pointer;margin-top: 380px;margin-left: 50px;" class="float">
+                  <option value="all">Jan 2006 - Feb 2017</option>
+                  <option value="2017">2017</option>
+                  <option value="2016">2016</option>
+                  <option value="2015">2015</option>
+                  <option value="2014">2014</option>
+                  <option value="2013">2013</option>
+                  <option value="2012">2012</option>
+                  <option value="2011">2011</option>
+                  <option value="2010">2010</option>
+                  <option value="2009">2009</option>
+                  <option value="2008">2008</option>
+                  <option value="2007">2007</option>
+                  <option value="2006">2006</option>
+              </select>
+          </div>  
+        </div>  
+        
+        <div class="w3-col s12" style="margin-bottom:-80px">
+            <div id="aumap" class="w3-col s7" style="position:relative;z-index:100;"></div>
+            <div id="sunburstDiagram" class="w3-col s5">
+                <div id="main">
+                  <div id="sequence" style="margin-left:-15px"></div>
+                  <div id="explanation" style="font-size:12px;margin-left:-15px; margin-bottom: -20px;height:10px"></div>
+                  <div id="chart">
+                      <div id="centerState">AUST</div>
+                  </div>
+                </div>
+                <script type="text/javascript" src="sequences.js"></script>
+            </div>
+        </div>
+        <div id="bp" style="margin-top:-50px"></div>
+        <div id="descJobType" class="w3-col s5" style="padding-left:30px"></div>
+        <div class="w3-col s2">
+            Data Type:
+            <select id="dataDisplay" onchange="changeValue()">
+                  <option value="p">Percentage</option>
+                  <option value="n">Numbers</option>
+            </select>
+        </div>
+        <div id="descSkillLevel" class="w3-col s5"></div>
+        <script>
+            var ul = d3.select('#descJobType').append('ul');
+              ul.attr("id","type");
+              ul.selectAll('li')
+              .data(types)
+              .enter()
+              .append('li')
+              .style("color", function(d) { return typeColor((types.indexOf(d)+1)/10); })
+              .html(String);
+        </script>
+        <div class="w3-col s12 center">PS: There are some data that are a bit off because of rounding up, raw data differences and manual measurement errors.</div>
+
     </div>  
     
   </div>
@@ -489,10 +787,80 @@ function checkObjectValue2InArray(value, array, type){
     return false;
 }
 
+Number.prototype.format = function(n, x) {
+    var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\.' : '$') + ')';
+    return this.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&,');
+};
+
+//addOption("majorList","test");
+function addOption( id, text ) {
+    var select, i, option;
+
+    select = document.getElementById( id );
+    option = document.createElement( 'option' );
+    option.value = option.text = text;
+    select.add( option );
+    
+}
+
 var sourceData = [];//4-digit data
-var ANZSCO2 = [];//2-digit data
+var ANZSCO2Source = [];//2-digit data
+var skillData = []; 
+//variables used in job type graphs 
 var filterSourceData = [];
 var selectOccupation = [];
+//variable used in map graph
+var ANZSCO2 = [];//filted data
+var skillFilterData = [];
+
+// Filter data for sunburst data
+function filterForSunburst(){
+    var state = document.getElementById("centerState").innerText;
+    var year = document.getElementById("year").value;
+    //console.log(sourceData);
+    var data = sourceData.filter(function(d){
+        var checkYear = true;
+        if(year!=="all"){
+            var date = parseDate(d.Date);
+            checkYear = date.getFullYear() === parseInt(year);
+        }
+        return d.State === state && checkYear;
+    });
+    var filterData = [];
+    for(var i = 0; i < data.length; i++){
+        var key = data[i].Anzsco4Code+"."+data[i].AnzscoTitle;
+        var found = false;
+        for(var j = 0; j < filterData.length; j++){
+            if(filterData[j].key === key){
+                filterData[j].value += parseInt(data[i].NoOfVacancies);
+                found = true;
+                break;
+            }
+        }
+        if(!found){
+            var index = filterData.length;
+            filterData[index]={key: "", code1: "", code2: "", value: 0, SkillLevel:""};
+
+            filterData[index].key = key;
+            filterData[index].code1 = types[data[i].Anzsco1Code-1];
+            filterData[index].code2 = data[i].Anzsco2Code+"."+data[i].Anzsco2Title;
+            filterData[index].value = parseInt(data[i].NoOfVacancies);
+            filterData[index].SkillLevel = data[i].SkillLevel;
+
+        }
+
+    }
+    sequenceData = [];
+    filterData.forEach(function(d){
+        var code1 = d.code1.replace("-", " ");
+        var code2 = d.code2.replace("-", " ");
+        var key = d.key.replace("-", " ");
+        sequenceData[sequenceData.length]=[[code1]+"-"+[code2]+"-"+[key],d.value];
+    });
+    initSeqData(sequenceData);
+    //console.log(sequenceData);
+
+}
 
 // Start the zomable treemap for job type-----------------
 window.addEventListener('message', function(e) {
@@ -657,12 +1025,13 @@ function main(o, data) {
                 }
                 if(!found){
                     var index = selectOccupation.length;
-                    selectOccupation[index] = {code: "", title: "", num: 0, type: 0, code2: ""};
+                    selectOccupation[index] = {code: "", title: "", num: 0, type: 0, code2: "", skill:""};
                     selectOccupation[index].code = occupationCode;
                     selectOccupation[index].title = d.key;
                     selectOccupation[index].num = d.value;
                     selectOccupation[index].type = getCode(d.code1);
                     selectOccupation[index].code2 = getCode(d.code2);
+                    selectOccupation[index].skill = d.SkillLevel;
                     typeBubbleGraph();
                     typeLineGraph();
                     var deleteBubble = document.getElementById("deleteBubble");
@@ -702,7 +1071,7 @@ function main(o, data) {
     t.call(text);
 
     g.selectAll("rect")
-        .style("fill", function(d) { return color(d.key); });
+        .style("fill", function(d) { return color(d.key); }).style("stroke","#fff");
 
     function transition(d) {
       if (transitioning || !d) return;
@@ -771,7 +1140,8 @@ function main(o, data) {
   }
 }
 
-if (window.location.hash === "") {
+var treeData = [], list = [], sublist = [], unitlist = [], sequenceData = [];
+//if (window.location.hash === "") {
     //4-digit data load
     //load data for treemap
     d3.csv("data/ANZSCO4.csv", function(data) {
@@ -792,27 +1162,54 @@ if (window.location.hash === "") {
                 }
                 if(!found){
                     var index = filterData.length;
-                    filterData[index]={key: "", code1: "", code2: "", value: 0};
+                    filterData[index]={key: "", code1: "", code2: "", value: 0, SkillLevel:""};
                     
                     filterData[index].key = key;
                     filterData[index].code1 = types[data[i].Anzsco1Code-1];
                     filterData[index].code2 = data[i].Anzsco2Code+"."+data[i].Anzsco2Title;
                     filterData[index].value = parseInt(data[i].NoOfVacancies);
+                    filterData[index].SkillLevel = data[i].SkillLevel;
+
                 }
             }
         }
         //alert(JSON.stringify(filterData));
-        var treeData = d3.nest().key(function(d) { return d.code1; }).key(function(d) { return d.code2; }).entries(filterData);
+        treeData = d3.nest().key(function(d) { return d.code1; }).key(function(d) { return d.code2; }).entries(filterData);
         //console.log(treeData);
         main({title: "Job Vacancies"}, {key: "Occupations", values: treeData});
-
+        initDropDown();
+        
+        //draw sequence sunburst graph
+        filterData.forEach(function(d){
+            var code1 = d.code1.replace("-", " ");
+            var code2 = d.code2.replace("-", " ");
+            var key = d.key.replace("-", " ");
+            sequenceData[sequenceData.length]=[[code1]+"-"+[code2]+"-"+[key],d.value];
+        });
+        initSeqData(sequenceData);
     });
-    
+    var loadReady = 0;
     //2-digit data load for line graph and map
     d3.csv("data/ANZSCO2.csv", function(data) {
-        ANZSCO2 = data;
+        ANZSCO2Source = data;
+        ANZSCO2 = ANZSCO2Source;
+        mapGraph();
+        loadReady++;
+        if(loadReady===2){
+            doubleBP();
+        }
+        
     });
-}
+    d3.csv("data/SkillLevel.csv", function(data) {
+        skillData = data;
+        skillFilterData = data;
+        loadReady++;
+        if(loadReady===2){
+            doubleBP();
+        }
+        
+    });
+//}
 
 // End the zomable treemap for job type-------------------
 function filterData(){
@@ -832,6 +1229,8 @@ function deleteAllSelect(){
     var content = document.getElementById("content");
     content.style.display = "none"; 
     document.getElementById("subGraphContainer").style.display = "none"; 
+    document.getElementById("startDate").value = "2006-03";
+    document.getElementById("endDate").value = "2017-02";
 }
 
 function deteleBubble(){
@@ -877,6 +1276,40 @@ function setBubbleZoom(){
     
     typeBubbleGraph();
     typeLineGraph();
+}
+
+function addBubble(){   
+    var occupation = document.getElementById("unitList").value;
+    var d;
+    unitlist.forEach(function(unit){
+        if(unit.key===occupation){
+            d = unit;
+            stop;
+        }
+    });
+    var occupationCode = getCode(d.key);
+    var found = false;
+    for(var j = 0; j < selectOccupation.length; j++){
+        if(selectOccupation[j].code === occupationCode){
+            found = true;
+        }
+    }
+    if(!found){
+        var index = selectOccupation.length;
+        selectOccupation[index] = {code: "", title: "", num: 0, type: 0, code2: "", skill:""};
+        selectOccupation[index].code = occupationCode;
+        selectOccupation[index].title = d.key;
+        selectOccupation[index].num = d.value;
+        selectOccupation[index].type = getCode(d.code1);
+        selectOccupation[index].code2 = getCode(d.code2);
+        selectOccupation[index].skill = d.SkillLevel;
+        typeBubbleGraph();
+        typeLineGraph();
+        var deleteBubble = document.getElementById("deleteBubble");
+        deleteBubble.style.visibility = "visible";
+        deleteBubble.innerText = "Remove "+d.key;
+        deleteBubble.value = occupationCode;
+    }
 }
 // Start the type bubble graph-----------------
 var bubbleData = [];
@@ -928,7 +1361,7 @@ function typeBubbleGraph(){
     //console.log(type)
     
     var width = 480,
-        height = 300,
+        height = 400,
         padding = 1.5, // separation between same-color circles
         clusterPadding = 6, // separation between different-color circles
         maxRadius = 12;
@@ -954,6 +1387,7 @@ function typeBubbleGraph(){
                title: type[nodeIndex].title, 
                num: type[nodeIndex].num, 
                select: false,
+               skill: type[nodeIndex].skill,
                x: Math.cos(i / m * 2 * Math.PI) * 200 + width / 2 + Math.random(),
                y: Math.sin(i / m * 2 * Math.PI) * 200 + height / 2 + Math.random()
                };
@@ -1019,7 +1453,8 @@ function typeBubbleGraph(){
                 div.transition()		
                     .duration(200)		
                     .style("opacity", .9);		
-                div.html(d.title+"<br/>"+d.num)	
+                div.html(d.title+"<br/>No. Of Vacancies: "+d.num.format()
+                        +"<br/>"+skillList[parseInt(d.skill)-1])	
                     .style("left", (d3.event.pageX) + "px")		
                     .style("top", (d3.event.pageY - 28) + "px");	
                 })					
@@ -1129,8 +1564,11 @@ for (var i=0, len=groups.length; i<len; i++) {
             //alert(JSON.stringify(filterSourceData));
             var typeDateData = [];
     
-            var start = parseDate("01/03/2006");
-            var end = parseDate("01/02/2017");
+            //var start = parseDate("01/03/2006");
+            //var end = parseDate("01/02/2017");
+            var start = parseDate(convertDate(startDate.value));
+            var end = parseDate(convertDate(endDate.value));
+
 
             //var format = d3.timeFormat("%Y-%m-%d");
 
@@ -1165,7 +1603,7 @@ for (var i=0, len=groups.length; i<len; i++) {
                     }
                 }
             }
-            console.log(typeDateData);console.log(typeData);
+            //console.log(typeDateData);console.log(typeData);
             drawLines(typeDateData,typeData);
             
         }
@@ -1190,8 +1628,10 @@ function typeLineGraph(){
     var state = document.getElementById("state").value;
     var typeDateData = [];
     
-    var start = parseDate("01/03/2006");
-    var end = parseDate("01/02/2017");
+    //var start = parseDate("01/03/2006");
+    var start = parseDate(convertDate(startDate.value));
+    //var end = parseDate("01/02/2017");
+    var end = parseDate(convertDate(endDate.value));
     
     //var format = d3.timeFormat("%Y-%m-%d");
 
@@ -1231,8 +1671,8 @@ function drawLines(data,cities) {
     d3.select('#typeLine').select("svg").remove();
     var svg = d3.select('#typeLine').append("svg")
             .attr("width", 480)
-            .attr("height", 300),
-        margin = {top: 20, right: 80, bottom: 30, left: 50},
+            .attr("height", 350),
+        margin = {top: 20, right: 80, bottom: 65, left: 50},
         width = svg.attr("width") - margin.left - margin.right,
         height = svg.attr("height") - margin.top - margin.bottom,
         g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -1273,7 +1713,12 @@ function drawLines(data,cities) {
   g.append("g")
       .attr("class", "axis axis--x")
       .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x));
+      .call(d3.axisBottom(x))
+      .selectAll("text")
+        .style("text-anchor", "end")
+        .attr("dx", "-.8em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");;
 
   g.append("g")
       .attr("class", "axis axis--y")
@@ -1312,7 +1757,6 @@ function drawLines(data,cities) {
         })
         .style("opacity", function(d){
             if(hasSelect){
-                console.log(bubbleData);
                 for(var i=0; i<bubbleData.length; i++){
                     if(bubbleData[i].code===d.id){
                         if(bubbleData[i].select===true){
@@ -1362,53 +1806,146 @@ function drawLines(data,cities) {
 
 // End the type line graph---------------------
 
+// --------------start for map tab-------------
+
 // Start the au map graph----------------------
 
-var width = 960,
-  height = 300,
-  active=d3.select(null);
+function changeMap(){
+    var year = document.getElementById("year").value;
+
+    ANZSCO2 = JSON.parse(JSON.stringify(ANZSCO2Source));
+    if(year!=="all"){
+        ANZSCO2 = ANZSCO2.filter(function(d){
+            var date = parseDate(d.Date);
+            return date.getFullYear() === parseInt(year);
+        });
+    }
+
+    mapGraph();
+    
+    skillFilterData = JSON.parse(JSON.stringify(skillData));
+    if(year!=="all"){
+        skillFilterData = skillFilterData.filter(function(d){
+            var date = parseDate(d.Date);
+            return date.getFullYear() === parseInt(year);
+        });
+    }
+    defaultInBP = {};
+    doubleBP();
+    
+    //refresh sunburst graph
+    document.getElementById("centerState").innerText = "AUST";
+    filterForSunburst();
+    
+}
+
+var stateCode = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"];
+
+var width = 550,
+    height = 450,
+    active=d3.select(null);
 var zoom = d3.zoom()
-// no longer in d3 v4 - zoom initialises with zoomIdentity, so it's already at origin
-// .translate([0, 0]) 
-// .scale(1) 
-.scaleExtent([1, 8])
-.on("zoom", zoomed);
-
-var projection = d3.geoConicConformal()
-.rotate([-132, 0])
-.center([0, -27])
-.parallels([-18, -36])
-.scale(Math.min(height * 1.2, width * 0.8))
-.translate([width / 2, height / 2])
-.precision(0.1);
-var path = d3.geoPath()
-.projection(projection);
-
+    // no longer in d3 v4 - zoom initialises with zoomIdentity, so it's already at origin
+    // .translate([0, 0]) 
+    // .scale(1) 
+    .scaleExtent([1, 8])
+    .on("zoom", zoomed);
+    
+var projection = d3.geo.conicConformal()
+    .rotate([-132,0])
+    .center([0, -27])
+    .parallels([-18,-36])
+    .translate([width/2,height/2])
+    .scale(700);
+var path = d3.geo.path()
+    .projection(projection);
 var svg = d3.select("#aumap").append("svg")
-  .attr("width", width)
-  .attr("height", height);
+    .attr("width", width)
+    .attr("height", height);
+var states = svg.append("g")
+    .attr("id", "states")
+    .attr("class", "states");
 
-var g = svg.append("g");
-d3.json("data/au.json", function(error, australia) {
-if (error) throw error;
-var aaa =topojson.feature(australia, australia.objects.states).features;
-alert(JSON.stringify(aaa));
-g.attr("class", "states")
-    .selectAll("path")
-    .data(topojson.feature(australia, australia.objects.states).features)
-    .enter().append("path")
-    .attr("d", path)
-    .on("click",clicked)
-    .style("fill", function(d) {
-        alert(d.properties.region); 
+function mapGraph(){
+    d3.select("#aumap").select("svg").remove();
+    svg = d3.select("#aumap").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+    states = svg.append("g")
+    .attr("id", "states")
+    .attr("class", "states");
+    
+    var mapData = {};
+    
+    stateCode.forEach(function(d){
+        mapData[d] = 0;
     });
-});
 
-d3.select(self.frameElement).style("height", height + "px");
+    for(var i=0;i<ANZSCO2.length;i++){
+        var state = ANZSCO2[i].State; 
+        if(state!=="AUST" && ANZSCO2[i].Level==="1"){
+            mapData[state] += parseFloat(ANZSCO2[i].NoOfVacancies);
+            mapData[state] = parseFloat(mapData[state].toFixed(2));
+        }
+    }
+    //alert(JSON.stringify(mapData));
+    var fill = d3.scale.log()
+    .domain(d3.extent(d3.values(mapData)))
+    .range(["azure", "steelblue"]);
+    d3.json("aus_state.json", function(collection) {
+        //alert(JSON.stringify(ANZSCO2));
+        collection.features = collection.features.filter(function(d){
+            return d.id<8;
+        });
+        states.selectAll("path")
+        .data(collection.features)
+        .enter().append("path")
+        .attr("fill", function(d) {
+            return fill(mapData[(stateCode[d.id])]);
+        })
+        .attr("d", path)
+        .on("click",clicked)
+        .on("mouseover", function(d) {		
+            div.transition()		
+                .duration(200)		
+                .style("opacity", .9);		
+            div.html(d.properties.STATE_NAME+"<br/>No. Of Vacancies: "+mapData[(stateCode[d.id])].format())	
+                .style("left", (d3.event.pageX) + "px")		
+                .style("top", (d3.event.pageY - 28) + "px");	
+            })					
+        .on("mouseout", function(d) {		
+            div.transition()		
+                .duration(500)		
+                .style("opacity", 0);	
+        });
+
+        states.selectAll("text")
+        .data(collection.features)
+        .enter()
+        .append("svg:text")
+        .text(function(d){
+            //return d.properties.STATE_NAME;
+            return stateCode[d.id]+" ("+mapData[(stateCode[d.id])].format()+")";
+        })
+        .attr("x", function(d){
+            return path.centroid(d)[0];
+        })
+        .attr("y", function(d){
+            return  path.centroid(d)[1];
+        })
+        .attr("text-anchor","middle")
+        .attr('font-size','6pt')
+        .attr("fill","black");
+
+    });
+}
+var defaultInBP = {};    
 
 function clicked(d) {
     if (active.node() === this) return reset();
-    alert(JSON.stringify(d.properties));
+   
+    //(stateCode[d.id]);
+    defaultInBP = {"part":"secondary","key":stateCode[d.id]};
     active.classed("active", false);
     active = d3.select(this).classed("active", true);
 
@@ -1421,28 +1958,216 @@ function clicked(d) {
       translate = [width / 2 - scale * x, height / 2 - scale * y];
 
     svg.transition()
-      .duration(750)
-      // .call(zoom.translate(translate).scale(scale).event); // not in d3 v4
-      .call( zoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale) ); // updated for d3 v4
+       .duration(750)
+       // .call(zoom.translate(translate).scale(scale).event); // not in d3 v4
+       .call( zoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale) ); // updated for d3 v4
+    doubleBP();
+    
+    //change state text in the ceter of sunburst graph
+    document.getElementById("centerState").innerText = stateCode[d.id];
+    filterForSunburst();
 }
 
 function reset() {
+    defaultInBP = {};
     active.classed("active", false);
     active = d3.select(null);
+    
+    document.getElementById("centerState").innerText = "AUST";
+    filterForSunburst();
 
     svg.transition()
-      .duration(750)
-      // .call( zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1) ); // not in d3 v4
-      .call( zoom.transform, d3.zoomIdentity ); // updated for d3 v4
+        .duration(750)
+        // .call( zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1) ); // not in d3 v4
+        .call( zoom.transform, d3.zoomIdentity ); // updated for d3 v4
+    doubleBP();
 }
 
 function zoomed() {
-    g.style("stroke-width", 1.5 / d3.event.transform.k + "px");
+    states.style("stroke-width", 1.5 / d3.event.transform.k + "px");
     // g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")"); // not in d3 v4
-    g.attr("transform", d3.event.transform); // updated for d3 v4
+    states.attr("transform", d3.event.transform); // updated for d3 v4
 }
 
 // End the au map graph------------------------
+
+// Start the vertical bp graph-----------------
+var color ={"1":"#3366CC", "2":"#DC3912",  "3":"#FF9900", "4":"#109618", "5":"#990099"};
+var displayValue = false;
+
+function doubleBP(){
+    var barData = [];//job classfication
+    var bar2Data = [];//skill level
+    
+    ANZSCO2.forEach(function(record) {
+        if(record.State !== "AUST" && record.Level === "2"){
+            var found = false;
+            barData.forEach(function(d){
+                if(d[1]===record.State && d[0]===record.AnzscoCode){
+                    found = true;
+                    d[2] += parseFloat(record.NoOfVacancies);
+                    d[2] = parseFloat(d[2].toFixed(2));
+                }
+            });
+            if(!found){
+                barData[barData.length]=[record.AnzscoCode, record.State, parseFloat(record.NoOfVacancies)];
+            }
+        }
+      });
+      
+    skillFilterData.forEach(function(record){
+        if(record.State !== "AUST" && record.Level === "2"){
+            var found = false;
+            bar2Data.forEach(function(d){
+                if(d[1]===record.State && d[0]===record.SkillLevel){
+                    found = true;
+                    d[2] += parseFloat(record.NoOfVacancies);
+                    d[2] = parseFloat(d[2].toFixed(2));
+                }
+            });
+            if(!found){
+                bar2Data[bar2Data.length]=[record.SkillLevel, record.State, parseFloat(record.NoOfVacancies)];
+            }
+        }
+    });
+
+    d3.select("#bp").select("svg").remove();
+    var svg = d3.select("#bp").append("svg").attr("width", 960).attr("height", 400);
+
+    svg.append("text").attr("x",250).attr("y",70)
+            .attr("class","header").text("Job Types");
+
+    svg.append("text").attr("x",750).attr("y",70)
+            .attr("class","header").text("Skill Levels");
+
+    var g =[svg.append("g").attr("transform","translate(150,100)")
+                    ,svg.append("g").attr("transform","translate(650,100)")];
+    
+    var bp=[ viz.bP()
+                    .data(barData)
+                    .min(12)
+                    .pad(1)
+                    .height(300)
+                    .width(200)
+                    .barSize(35)
+                    .fill(d=>typeColor(parseInt(d.primary)/10))
+            ,viz.bP()
+                    .data(bar2Data)
+                    //.value(d=>d[3])
+                    .min(12)
+                    .pad(1)
+                    .height(300)
+                    .width(200)
+                    .barSize(35)
+                    .fill(d=>color[d.primary])
+    ];
+
+    g[0].append("text").attr("x",-50).attr("y",-8).style("text-anchor","middle").text("ANZSCO Major Group");
+    g[1].append("text").attr("x",-50).attr("y",-8).style("text-anchor","middle").text("Skill Levels");
+
+    [0,1].forEach(function(i){
+            g[i].call(bp[i])
+
+            g[i].append("text").attr("x", 250).attr("y",-8).style("text-anchor","middle").text("State");
+
+            g[i].append("line").attr("x1",-100).attr("x2",0);
+            g[i].append("line").attr("x1",200).attr("x2",300);
+
+            g[i].append("line").attr("y1",300).attr("y2",300).attr("x1",-100).attr("x2",0);
+            g[i].append("line").attr("y1",300).attr("y2",300).attr("x1",200).attr("x2",300);
+
+            g[i].selectAll(".mainBars")
+                    .on("mouseover",mouseover)
+                    .on("mouseout",mouseout);
+
+            g[i].selectAll(".mainBars").append("text").attr("class","label")
+                    .attr("x",d=>(d.part=="primary"? -30: 30))
+                    .attr("y",d=>+6)
+                    .text(d=>d.key)
+                    .attr("text-anchor",d=>(d.part=="primary"? "end": "start"));
+
+            g[i].selectAll(".mainBars").append("text").attr("class","perc")
+                    .attr("x",d=>(d.part=="primary"? -100: 80))
+                    .attr("y",d=>+6)
+                    .text(function(d){
+                        if(displayValue){
+                            return d.value.format();
+                        }else{
+                            return d3.format("0.0%")(d.percent);
+                        }
+                    })
+                    .attr("text-anchor",d=>(d.part=="primary"? "end": "start"));
+    });
+
+    if(Object.keys(defaultInBP).length>0){
+        mouseover(defaultInBP);
+    }
+    function mouseover(d){
+            //alert(Object.keys(d).length);
+            
+            [0,1].forEach(function(i){
+                if((d.key+"").length>1){
+                    bp[i].mouseover(d);
+                }
+                g[i].selectAll(".mainBars").select(".perc")
+                .text(function(d){ 
+                    if(displayValue){
+                        return d.value.format();
+                    }else{
+                        return d3.format("0.0%")(d.percent);
+                    }
+                });
+            });
+
+    }
+    function mouseout(d){
+            [0,1].forEach(function(i){
+                    bp[i].mouseout(d);
+
+                    g[i].selectAll(".mainBars").select(".perc")
+                    .text(function(d){ 
+                        if(displayValue){
+                            return d.value.format();
+                        }else{
+                            return d3.format("0.0%")(d.percent);
+                        }
+                    });//d.value
+            });
+    }
+    d3.select(self.frameElement).style("height", "800px");
+}
+
+// End the vertical bp graph-------------------
+
+// Start the exlaination list------------------
+var ul = document.createElement('ul');
+ul.setAttribute('id','type');
+document.getElementById('descSkillLevel').appendChild(ul);
+var skillList = ["Skill Level 1 - Bachelor degree or higher","Skill Level 2 - Advanced Diploma or Diploma"
+    ,"Skill Level 3 - Certificate IV or III*","Skill Level 4 - Certificate II or III"
+    ,"Skill Level 5 - Certificate I or secondary education"];
+var index = 1;
+skillList.forEach(function(d){
+    var li = document.createElement('li');
+    li.style.color=color[index];
+
+    ul.appendChild(li);
+
+    li.innerHTML=li.innerHTML + d;
+    index++;
+});
+
+function changeValue(){
+    var data = document.getElementById("dataDisplay").value;
+    if(data==="p"){
+        displayValue = false;
+        doubleBP();
+    }else if(data==="n"){
+        displayValue = true;
+        doubleBP();
+    }
+}
+// End the explaination list-------------------
 
 </script>
 

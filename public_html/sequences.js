@@ -4,9 +4,9 @@
  * and open the template in the editor.
  */
 // Dimensions of sunburst.
-var width = 750;
-var height = 600;
-var radius = Math.min(width, height) / 2;
+var sunWidth = 350;
+var sunHeight = 400;
+var radius = Math.min(sunWidth, sunHeight) / 2;
 
 // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
 var b = {
@@ -27,11 +27,11 @@ var colors = {
 var totalSize = 0; 
 
 var vis = d3.select("#chart").append("svg:svg")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", sunWidth)
+    .attr("height", sunHeight)
     .append("svg:g")
     .attr("id", "container")
-    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    .attr("transform", "translate(" + sunWidth / 2 + "," + sunHeight / 2 + ")");
 
 var partition = d3.partition()
     .size([2 * Math.PI, radius * radius]);
@@ -44,13 +44,25 @@ var arc = d3.arc()
 
 // Use d3.text and d3.csvParseRows so that we do not need to have a header
 // row, and can receive the csv as an array of arrays.
-d3.text("visit-sequences.csv", function(text) {
+/*d3.text("visit-sequences.csv", function(text) {
   var csv = d3.csvParseRows(text);
+  //alert(JSON.stringify(csv));
   var json = buildHierarchy(csv);
-  alert(JSON.stringify(json));
-  console.log(json);
   createVisualization(json);
-});
+});*/
+
+function initSeqData(csv){
+    d3.select("#chart").select("svg").remove();
+    vis = d3.select("#chart").append("svg:svg")
+    .attr("width", sunWidth)
+    .attr("height", sunHeight)
+    .append("svg:g")
+    .attr("id", "container")
+    .attr("transform", "translate(" + sunWidth / 2 + "," + sunHeight / 2 + ")");
+    
+    var json = buildHierarchy(csv);
+    createVisualization(json);
+}
 
 // Main function to draw and set up the visualization, once we have the data.
 function createVisualization(json) {
@@ -83,9 +95,12 @@ function createVisualization(json) {
       .attr("display", function(d) { return d.depth ? null : "none"; })
       .attr("d", arc)
       .attr("fill-rule", "evenodd")
-      .style("fill", function(d) { return colors[d.data.name]; })
+      .style("fill", function(d) { 
+          //return colors[d.data.name];
+            return typeColor(parseInt(getCode(d.data.name)[0])/10); 
+          })
       .style("opacity", 1)
-      .on("mouseover", mouseover);
+      .on("mouseover", sunMouseover);
 
   // Add the mouseleave handler to the bounding circle.
   d3.select("#container").on("mouseleave", mouseleave);
@@ -95,26 +110,32 @@ function createVisualization(json) {
  };
 
 // Fade all but the current sequence, and show it in the breadcrumb trail.
-function mouseover(d) {
-
+function sunMouseover(d) {
+  if(d.data)
+  var name = d.data.name +"";
   var percentage = (100 * d.value / totalSize).toPrecision(3);
   var percentageString = percentage + "%";
   if (percentage < 0.1) {
     percentageString = "< 0.1%";
+  }
+  
+  if(displayValue){
+      percentageString = parseInt(d.value).format();
   }
 
   d3.select("#percentage")
       .text(percentageString);
 
   d3.select("#explanation")
-      .style("visibility", "");
+      .style("visibility", "")
+      .text(name);
 
   var sequenceArray = d.ancestors().reverse();
   sequenceArray.shift(); // remove root node from the array
   updateBreadcrumbs(sequenceArray, percentageString);
 
   // Fade all the segments.
-  d3.selectAll("path")
+  d3.select("#chart").selectAll("path")
       .style("opacity", 0.3);
 
   // Then highlight only those that are an ancestor of the current segment.
@@ -136,22 +157,22 @@ function mouseleave(d) {
   d3.selectAll("path").on("mouseover", null);
 
   // Transition each segment to full opacity and then reactivate it.
-  d3.selectAll("path")
+  d3.select("#chart").selectAll("path")
       .transition()
       .duration(1000)
       .style("opacity", 1)
       .on("end", function() {
-              d3.select(this).on("mouseover", mouseover);
+              d3.select(this).on("mouseover", sunMouseover);
             });
 
   d3.select("#explanation")
-      .style("visibility", "hidden");
+      .style("visibility", "").text("");
 }
 
 function initializeBreadcrumbTrail() {
   // Add the svg area.
   var trail = d3.select("#sequence").append("svg:svg")
-      .attr("width", width)
+      .attr("width", sunWidth)
       .attr("height", 50)
       .attr("id", "trail");
   // Add the label at the end, for the percentage.
@@ -190,14 +211,19 @@ function updateBreadcrumbs(nodeArray, percentageString) {
 
   entering.append("svg:polygon")
       .attr("points", breadcrumbPoints)
-      .style("fill", function(d) { return colors[d.data.name]; });
+      .style("fill", function(d) { 
+          return typeColor(parseInt(getCode(d.data.name)[0])/10); 
+          //return colors[d.data.name]; 
+      });
 
   entering.append("svg:text")
       .attr("x", (b.w + b.t) / 2)
       .attr("y", b.h / 2)
       .attr("dy", "0.35em")
       .attr("text-anchor", "middle")
-      .text(function(d) { return d.data.name; });
+      .text(function(d) {           
+          return getCode(d.data.name); 
+          });
 
   // Merge enter and update selections; set position for all nodes.
   entering.merge(trail).attr("transform", function(d, i) {

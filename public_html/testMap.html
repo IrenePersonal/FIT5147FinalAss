@@ -3,11 +3,21 @@
   <head>
     <title>Australia</title>
     <style type="text/css">
-#states path {
-  stroke: #fff;
-}
+    #states path {
+      stroke: #fff;
+    }
+    
+    .states :hover {
+        fill: orange;
+      }
+
+      .active {
+          fill: orange;
+      }
     </style>
-    <script src="http://d3js.org/d3.v3.min.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+
+    <script src="http://d3js.org/d3.v4.min.js"></script>
 
   </head>
   <body>
@@ -22,32 +32,79 @@ awesomeness = {"New South Wales":8, // + it's NSW, - legacy of NSW Labor
 	"Northern Territory": 7, // + arnhem land, cumulo nimbus clouds over Darwin, - mosquitoes
 	"Other Territories":5, // I'm sure they're ok
   };
-var w = 960,
-    h = 500;
+var width = 960,
+    height = 500,
+    active=d3.select(null);
+var zoom = d3.zoom()
+    // no longer in d3 v4 - zoom initialises with zoomIdentity, so it's already at origin
+    // .translate([0, 0]) 
+    // .scale(1) 
+    .scaleExtent([1, 8])
+    .on("zoom", zoomed);
+    
 var z = d3.scale.category10();
 var fill = d3.scale.log()
     .domain(d3.extent(d3.values(awesomeness)))
     .range(["brown", "steelblue"]);
-var projection = d3.geo.albers()
-    .center([135, -26])
-    .translate([250,180])
+var projection = d3.geo.conicConformal()
+    .rotate([-132,0])
+    .center([0, -27])
+    .parallels([-18,-36])
+    .translate([width/2,height/2])
     .scale(700);
 var path = d3.geo.path()
     .projection(projection);
 var svg = d3.select("body").append("svg")
-    .attr("width", w)
-    .attr("height", h);
+    .attr("width", width)
+    .attr("height", height);
 var states = svg.append("g")
-    .attr("id", "states");
+    .attr("id", "states")
+    .attr("class", "states");
 d3.json("aus_state.json", function(collection) {
   states.selectAll("path")
       .data(collection.features)
     .enter().append("path")
-			.attr("fill", function(d) {
+    .attr("fill", function(d) {
          return fill(awesomeness[(d.properties["STATE_NAME"])]);
        })
-      .attr("d", path);
+      .attr("d", path)
+      .on("click",clicked);;
 });
+
+function clicked(d) {
+          if (active.node() === this) return reset();
+          active.classed("active", false);
+          active = d3.select(this).classed("active", true);
+
+          var bounds = path.bounds(d),
+              dx = bounds[1][0] - bounds[0][0],
+              dy = bounds[1][1] - bounds[0][1],
+              x = (bounds[0][0] + bounds[1][0]) / 2,
+              y = (bounds[0][1] + bounds[1][1]) / 2,
+              scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height))),
+              translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+          svg.transition()
+              .duration(750)
+              // .call(zoom.translate(translate).scale(scale).event); // not in d3 v4
+              .call( zoom.transform, d3.zoomIdentity.translate(translate[0],translate[1]).scale(scale) ); // updated for d3 v4
+        }
+
+        function reset() {
+          active.classed("active", false);
+          active = d3.select(null);
+
+          svg.transition()
+              .duration(750)
+              // .call( zoom.transform, d3.zoomIdentity.translate(0, 0).scale(1) ); // not in d3 v4
+              .call( zoom.transform, d3.zoomIdentity ); // updated for d3 v4
+        }
+        
+        function zoomed() {
+          states.style("stroke-width", 1.5 / d3.event.transform.k + "px");
+          // g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")"); // not in d3 v4
+          states.attr("transform", d3.event.transform); // updated for d3 v4
+        }
 </script>
 <script src="https://gist.github.com/edwinsteele/08e1ef7c4326c2e06934.js"></script>
 

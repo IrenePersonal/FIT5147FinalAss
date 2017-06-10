@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
+
 text{
-	font-size:12px;
+    font-size:12px;
 }
 .mainBars rect{
   shape-rendering: auto;
@@ -162,7 +163,6 @@ d3.csv("data/ANZSCO2.csv", function(data) {
         }
       });
 
-      alert(JSON.stringify(barData));
       doubleBP();
     });
 
@@ -180,7 +180,7 @@ function doubleBP(){
                     ,svg.append("g").attr("transform","translate(650,100)")];
 
     var bp=[ viz.bP()
-                    .data(barData)
+                    .data(data)
                     .min(12)
                     .pad(1)
                     .height(600)
@@ -225,6 +225,7 @@ function doubleBP(){
                     .attr("y",d=>+6)
                     .text(function(d){return d3.format("0.0%")(d.percent)})
                     .attr("text-anchor",d=>(d.part=="primary"? "end": "start"));
+            g[i].selectAll(".mainBars").select("rect").style("fill-opacity", 0).style("stroke-opacity",0);
     });
 
     function mouseover(d){
@@ -234,6 +235,8 @@ function doubleBP(){
                     g[i].selectAll(".mainBars").select(".perc")
                     .text(function(d){ return d3.format("0.0%")(d.percent)});
             });
+                        alert(JSON.stringify(d));
+
     }
     function mouseout(d){
             [0,1].forEach(function(i){
